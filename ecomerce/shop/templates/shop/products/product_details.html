@@ -1,0 +1,107 @@
+{% extends "shop/layouts/main.html" %}
+
+{% block title %}
+{{ products.name }} | Shopkart
+{% endblock title %}
+
+{% block content %}
+<section class="bg-light py-4 my-5" style="min-height:600px">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h4 class="mb-3">{{ products }} Details</h4>
+                <hr style="border-color:#b8bfc2;">
+
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'collections' products.category.name %}">Collections</a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">{{ products }}</li>
+                    </ol>
+                </nav>
+                {% include "shop/inc/message.html" %}
+            </div>
+            <div class="col-md-4 my-3">
+                <div class="pic-box position-relative">
+                    {% if products.trending %}
+                    <div class="hot">HOT</div>
+                    {% endif %}
+                    <img src="{{ products.product_image.url }}" class="card-image-top img-fluid" alt="Image of {{ products.name }}">
+                </div>
+            </div>
+            <div class="col-md-8 my-3">
+                <h5 class="text-success">{{ products.name | upper }}</h5>
+                <p>{{ products.vendor }}</p>
+                <p>{{ products.description }}</p>
+                <h6 class="my-2 text-danger">Current Price: Rs. <s>{{ products.original_price }}</s></h6>
+                <h5 class="my-2 text-primary">Offer Price: Rs. {{ products.selling_price }}</h5>
+                <div class="my-3">
+                   
+                    <form method="POST" action="{% url 'add_to_cart' %}">
+                        {% if products.quantity > 0 %}
+                        {% csrf_token %}
+                        <input type="hidden" name="pid" value="{{ products.id }}">
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-outline-secondary mx-2" id="btnMinus"><i class="fa fa-minus"></i></button>
+                            <input type="number" id="txtQty" name="quantity" value="1" min="1" max="10" class="form-control w-25">
+                            <button type="button" class="btn btn-outline-secondary mx-2" id="btnPlus"><i class="fa fa-plus"></i></button>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3"><i class="fa fa-shopping-cart"></i> Add to Cart</button>
+                        {% else %}
+                        <button type="submit" class="btn btn-secondary mt-3"><i class="fa fa-minus"></i> Out of Stock</button>
+                        {% endif %}
+                    </form>
+                    <button type="submit" class="btn btn-danger mt-3" id="btnFav"><i class="fa fa-heart"></i> </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+    // Ensure the button exists and attach an event listener
+    const btnFav = document.getElementById("btnFav");
+    const productIdInput = document.querySelector('input[name="pid"]'); // Hidden input for product ID
+
+    if (btnFav && productIdInput) {
+        btnFav.addEventListener("click", function () {
+            const postObj = {
+                'pid': productIdInput.value // Fetch product ID from hidden input
+            };
+
+            fetch("/fav", {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}', // CSRF token for security
+                    'Content-Type': 'application/json' // Ensure JSON payload
+                },
+                body: JSON.stringify(postObj) // Convert data to JSON
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            }).then(data => {
+                // Handle the response from the server
+                if (data.status === 'Product Added to Favorite') {
+                    alert("Product added to favorites successfully!");
+                } else if (data.status === 'Product Already in Favorite') {
+                    alert("This product is already in your favorites.");
+                } else {
+                    alert(data.error || "An error occurred.");
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+                alert("Failed to add product to favorites.");
+            });
+        });
+    } else {
+        console.error("Button or product ID input not found!");
+    }
+</script>
+
+{% endblock content %}
